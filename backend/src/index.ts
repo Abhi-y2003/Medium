@@ -1,72 +1,90 @@
-import { Hono } from "hono";
-import { PrismaClient } from "@prisma/client/edge";
-import { withAccelerate } from "@prisma/extension-accelerate";
-import { decode, sign, verify } from 'hono/jwt'
-import { Context } from "hono";
+import { Hono } from 'hono'
+import { PrismaClient } from '@prisma/client/edge'
+import { withAccelerate } from '@prisma/extension-accelerate'
+import { sign } from 'hono/jwt'
 
-interface CustomContex extends Context {
-  userId?: string;
-}
+
 
 const app = new Hono<{
-	Bindings: {
-		DATABASE_URL: string
-    JWT_SECRET: string
-	}
-}>();
+  Bindings: {
+    DATABASE_URL: string;
+    JWT_SECRET: string;
+  }
+}>()
 
+app.post('/api/vi/signup', async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate())
 
-app.use('/api/v1/blog/*', async (c: CustomContex, next) => {
-  const header = c.req.header("authorization") || "";
-  const response = await verify(header, c.env.JWT_SECRET);
+  const body = await c.req.json()
 
-  if(response.id){
-    c.set('userId', response.id);
-    next()
-  }else{
+  try {
+    const user = await prisma.user.create({
+      data: {
+        email: body.email,
+        password: body.password
+      }
+    })
+
+    const token = await sign({ id: user.id }, c.env.JWT_SECRET);
+    return c.text(token)
+  } catch (error) {
+
     return c.json({
-      msg:"Authentication failed"
+      msg: "Error "
+    })
+
+  }
+})
+
+app.post('/api/v1/signin', async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL
+  }).$extends(withAccelerate())
+
+  const body = await c.req.json();
+  try {
+
+    const userExists = await prisma.user.findFirst({
+      where: {
+        email: body.email,
+        password: body.password,
+      }
+    })
+
+    if (!userExists) {
+      return c.json({
+        msg: "User doesnt exists"
+      })
+    }
+    const token = await sign({ id: userExists.id }, c.env.JWT_SECRET);
+    return c.json({
+      token: token,
+      msg: "User Signed up!!"
+    })
+  } catch (error) {
+    return c.json({
+      error,
+      msg: "loged in error"
     })
   }
 
-  
-  await next()
 })
 
+app.get('/api/vi/blog/:id', (c) => {
+  return c.text("hello world")
+})
 
-app.post("/api/v1/signup", async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env.DATABASE_URL,
-    
-  }).$extends(withAccelerate());
- 
-  //writing signup bussiness logic
-  const body = await c.req.json()
+app.post('/api/vi/blog ', (c) => {
+  return c.text("hello world")
+})
 
-  const user = await prisma.user.create({
-    data:{
-      name: body.name,
-      email: body.email,
-      password: body.password,
-    }
-  })
+app.post('/api/vi/signup', (c) => {
+  return c.text("hello world")
+})
 
-  const token = await sign({id:user.id}, c.env.JWT_SECRET);
-  return c.json({
-    jwt: token
-  });
-});
+export default app
 
-app.post("/api/vi/signin", (c) => {
-  return c.text("Helllo from signin route");
-});
-
-app.post("/api/vi/blog", (c) => {
-  return c.text("Helllo here you can upload your blog");
-});
-
-app.get("/api/vi/blog/:id", (c) => {
-  return c.text("Hey, here you get all the vlogs");
-});
-
-export default app;
+//
+//"
