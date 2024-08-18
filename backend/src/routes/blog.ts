@@ -32,23 +32,30 @@ blogRouter.use("/*", async (c, next) => {
 
 //Route to Create a blog -----------------------------------------------------------------------
 
-blogRouter.post('/create', async (c) => {
+blogRouter.post('/', async (c) => {
     try {
         const body = await c.req.json();
-        const authorId = c.get("userId")
+
+        const authorId = c.get("userId");
+        console.log("1")
         const prisma = new PrismaClient({
             datasourceUrl: c.env.DATABASE_URL,
         }).$extends(withAccelerate());
 
-        const blog = await prisma.blog.create({
-            data: {
+        console.log("2")
+
+        const post = await prisma.blog.create({
+            data:{
                 title: body.title,
-                contnet: body.contnet,
+                content:body.content,
                 authorId: authorId,
             }
         })
+
+        console.log("3")
+
         return c.json({
-            id: blog.id,
+            id: post.id
         })
     } catch (error) {
         return c.json({
@@ -76,7 +83,7 @@ blogRouter.put('/', async (c) => {
             },
             data: {
                 title: body.title,
-                contnet: body.contnet,
+                content: body.content,
             }
         })
 
@@ -98,7 +105,7 @@ blogRouter.put('/', async (c) => {
 blogRouter.get('/:id', async (c) => {
     try {
 
-        const id =  c.req.param("id");
+        const id = c.req.param("id");
 
         const prisma = new PrismaClient({
             datasourceUrl: c.env.DATABASE_URL,
@@ -110,7 +117,8 @@ blogRouter.get('/:id', async (c) => {
             },
         })
         return c.json({
-            id:id,
+            id: id,
+            blog
         })
     } catch (error) {
         return c.json({
@@ -120,15 +128,16 @@ blogRouter.get('/:id', async (c) => {
 })
 
 //Route to GET all Blogs ------------------------------------------------------------------------------------
-blogRouter.get('/blog ', async (c) => {
+blogRouter.get('/', async (c) => {
     try {
-        const body = await c.req.json();
 
         const prisma = new PrismaClient({
             datasourceUrl: c.env.DATABASE_URL,
         }).$extends(withAccelerate());
 
+        
         const blog = await prisma.blog.findMany();
+
         return c.json({
             blog
         })
