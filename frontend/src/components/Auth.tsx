@@ -1,24 +1,46 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { SignupInput } from "@abhishek-y2003/medium-common";
 import { useState } from "react";
+import axios from "axios";
+import { Backend_url } from "../config";
 
 export const Auth = ({ type }: { type: "signup" | "signin" }) => {
+  const navigate = useNavigate()
   const [postInputs, setPostInputs] = useState<SignupInput>({
     name: "",
     email: "",
     password: "",
   });
+
+
+  async function sendRequest(){
+    try{
+      const response = await axios.post(`${Backend_url}/api/v1/user/${type === "signin"? "signin" : "signup"}`, postInputs);
+      if (response.status === 200 && response.data && response.data.token) {
+        const jwt = response.data.token;
+        localStorage.setItem("token", jwt);
+        navigate('/blogs');
+    } else {
+        throw new Error("Authentication failed");
+    }
+    }catch(e){
+      alert(e)
+    }
+    
+  }
   return (
     <div className="bg-slate-100 h-screen flex justify-center items-center flex-1">
-      <div className="flex flex-col justify-center items-center max-w-lg">
+      <div className="flex flex-col justify-center items-center max-w-lg px-12">
         <div className="text-3xl font-extrabold ">Create An Account</div>
         <div className="mt-2 text-slate-400">
-          Already have an account?{" "}
-          <Link className="underline" to={"/Signin"}>
-            Login
+          {type === "signin"? "Don't have an account? " : "Already have an Account? "}
+          <Link className="underline" to={type === "signin"? "/signup " : "/Signin"}>
+          {type === "signin"? "signup " : "Login"}
           </Link>
         </div>
-        <LabelledInput
+        <div className="w-full mx-28 pt-2">
+        {type === "signup" && <LabelledInput
+        id="name"
           label="Name"
           placeholder="Abhishek singh..."
           onChange={(e) => {
@@ -27,9 +49,10 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
               name: e.target.value,
             }));
           }}
-        />
+        />}
 
         <LabelledInput
+        id="email"
           label="Email"
           placeholder="abhishek@gmail.com"
           onChange={(e) => {
@@ -41,8 +64,10 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
         />
 
         <LabelledInput
+          id="password"
           label="Password"
           placeholder="password..."
+          type="password"
           onChange={(e) => {
             setPostInputs((c) => ({
               ...c,
@@ -50,28 +75,32 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
             }));
           }}
         />
+        <button onClick={sendRequest} type="button" className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700 w-full mt-8" >{type === "signin"?  "Sign in": "Sign up"}</button>
+        </div>
       </div>
     </div>
   );
 };
 
 interface LabelledInputType {
+  id: string,
   label: string;
   placeholder: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string
 }
 
-function LabelledInput({ label, placeholder, onChange }: LabelledInputType) {
+function LabelledInput({id, label, placeholder, onChange, type }: LabelledInputType) {
   return (
     <div>
-      <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+      <label htmlFor={id} className="block text-lg font-lg text-slate-900 pt-4 pb-2 font-semibold ">
         {label}
       </label>
       <input
-        type="text"
+        type={type || "text"}
         onChange={onChange}
-        id="name"
-        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        id={id}
+        className="bg-gray-50 border border-slate-500 text-gray-900 text-sm rounded-lg block w-full p-2.5 mb-2" 
         placeholder={placeholder}
         required
       />

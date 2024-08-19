@@ -3,9 +3,9 @@ import { Quote } from "../components/Quote"
 
 export const Signup = () => {
   return (
-    <div className="flex w-screen">
+    <div className="lg:flex w-screen">
         <div className="flex-1">
-            <Auth/>
+            <Auth type="signup"/>
         </div>
         <div className="invisible lg:visible flex-1">
         <Quote/>

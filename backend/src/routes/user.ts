@@ -13,58 +13,70 @@ export const userRouter = new Hono<{
 
 
 userRouter.post('/signup', async (c) => {
-  const body = await c.req.json()
-  const {success} = signupInput.safeParse(body);
-
-  if(!success){
-    c.status(411)
-    return c.json({
-      msg:"Incorrect Inputs"
-    })
-  }
-
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env.DATABASE_URL,
-  }).$extends(withAccelerate())
-
-  
-
   try {
-    const user = await prisma.user.create({
-      data: {
+    const body = await c.req.json()
+    const { success } = signupInput.safeParse(body);
+
+    if (!success) {
+      c.status(411)
+      return c.json({
+        msg: "Incorrect Inputs"
+      })
+    }
+
+    const prisma = new PrismaClient({
+      datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate())
+
+    const userExist = await prisma.user.findFirst({
+      where:{
         email: body.email,
-        password: body.password
       }
     })
 
-    const token = await sign({ id: user.id }, c.env.JWT_SECRET);
-    return c.json({
-      token: token
-    });
+    if(!userExist){
+      const user = await prisma.user.create({
+        data: {
+          email: body.email,
+          password: body.password
+        }
+      })
+  
+      const token = await sign({ id: user.id }, c.env.JWT_SECRET);
+      return c.json({
+        token: token
+      });
+    }else{
+      return c.json({
+        message:"User already exists"
+      })
+    }
+    
   } catch (error) {
 
     return c.json({
-      msg: "Error "
+      msg: "Error in signup"
     })
 
   }
 })
 
 userRouter.post('/signin', async (c) => {
+
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL
   }).$extends(withAccelerate())
 
-  const body = await c.req.json();
-  const {success} = signinInput.safeParse(body);
-  if(!success){
-    c.status(411)
-    return c.json({
-      msg:"Incorrect Inputs"
-    })
-  }
   try {
 
+  const body = await c.req.json();
+  const { success } = signinInput.safeParse(body);
+  if (!success) {
+    c.status(411)
+    return c.json({
+      msg: "Incorrect Inputs"
+    })
+  }
     const userExists = await prisma.user.findFirst({
       where: {
         email: body.email,
