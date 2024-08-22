@@ -58,7 +58,7 @@ blogRouter.post('/', async (c) => {
         })
     }
 
-})
+});
 
 //Route to update a Blog ------------------------------------------------------------------------------------
 
@@ -92,7 +92,43 @@ blogRouter.put('/', async (c) => {
         })
     }
 
-})
+});
+
+
+//Route to GET all Blogs ------------------------------------------------------------------------------------
+blogRouter.get('/bulk', async (c) => {
+    try {
+
+        const prisma = new PrismaClient({
+            datasourceUrl: c.env.DATABASE_URL,
+        }).$extends(withAccelerate());
+
+        
+        const blog = await prisma.blog.findMany({
+            select:{
+                content:true,
+                title:true,
+                id:true,
+                author:{
+                    select:{
+                        name:true,
+                    }
+                }
+            }
+        });
+
+        return c.json({
+            blog
+        })
+    } catch (error) {
+        return c.json({
+            message: "Blogs cannot be fetched",
+            error
+        })
+    }
+
+});
+
 
 //Route to GET a Blog ------------------------------------------------------------------------------------
 
@@ -109,6 +145,16 @@ blogRouter.get('/:id', async (c) => {
             where: {
                 id: Number(id),
             },
+            select:{
+                id:true,
+                title:true,
+                content:true,
+                author:{
+                    select:{
+                        name:true,
+                    }
+                }
+            }
         })
         return c.json({
             id: id,
@@ -119,27 +165,4 @@ blogRouter.get('/:id', async (c) => {
             message: "BLog cannot be fetched"
         })
     }
-})
-
-//Route to GET all Blogs ------------------------------------------------------------------------------------
-blogRouter.get('/', async (c) => {
-    try {
-
-        const prisma = new PrismaClient({
-            datasourceUrl: c.env.DATABASE_URL,
-        }).$extends(withAccelerate());
-
-        
-        const blog = await prisma.blog.findMany();
-
-        return c.json({
-            blog
-        })
-    } catch (error) {
-        return c.json({
-            message: "Blogs cannot be fetched",
-            error
-        })
-    }
-
-})
+});
